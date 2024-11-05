@@ -34,7 +34,6 @@ class Attention(nn.Module):
     def forward(self, static_hidden, dynamic_hidden, decoder_hidden):
 
         batch_size, hidden_size, _ = static_hidden.size()
-
         hidden = decoder_hidden.unsqueeze(2).expand_as(static_hidden)
         hidden = torch.cat((static_hidden, dynamic_hidden, hidden), 1)
 
@@ -60,7 +59,7 @@ class Pointer(nn.Module):
         self.v = nn.Parameter(torch.zeros((1, 1, hidden_size),
                                           device=device, requires_grad=True))
 
-        self.W = nn.Parameter(torch.zeros((1, hidden_size, 2 * hidden_size),
+        self.W = nn.Parameter(torch.zeros((1, hidden_size, 3 * hidden_size),
                                           device=device, requires_grad=True))
 
         # Used to compute a representation of the current decoder output
@@ -89,13 +88,12 @@ class Pointer(nn.Module):
 
         # Calculate the next output using Batch-matrix-multiply ops
         context = context.transpose(1, 2).expand_as(static_hidden)
-        energy = torch.cat((static_hidden, context), dim=1)  # (B, num_feats, seq_len)
+        energy = torch.cat((static_hidden, dynamic_hidden, context), dim=1)  # (B, num_feats, seq_len)
 
         v = self.v.expand(static_hidden.size(0), -1, -1)
         W = self.W.expand(static_hidden.size(0), -1, -1)
 
         probs = torch.bmm(v, torch.tanh(torch.bmm(W, energy))).squeeze(1)
-
         return probs, last_hh
 
 

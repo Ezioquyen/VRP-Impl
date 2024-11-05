@@ -96,7 +96,9 @@ class DRL4TSP(nn.Module):
         # all 'pointing' iterations. When / if the dynamic elements change,
         # their representations will need to get calculated again.
         static_hidden = self.static_encoder(static)
-        dynamic_hidden = self.dynamic_encoder(dynamic)
+        dynamic_ld = dynamic.clone()
+        dynamic_ld[:, 0] = dynamic[:, 0] - dynamic[:, 1]
+        dynamic_hidden = self.dynamic_encoder(dynamic_ld)
 
         for _ in range(max_steps):
 
@@ -129,7 +131,9 @@ class DRL4TSP(nn.Module):
             # After visiting a node update the dynamic representation
             if self.update_fn is not None:
                 dynamic = self.update_fn(dynamic, ptr.data)
-                dynamic_hidden = self.dynamic_encoder(dynamic)
+                dynamic_ld = dynamic.clone()
+                dynamic_ld[:, 0] = dynamic[:, 0] - dynamic[:, 1]
+                dynamic_hidden = self.dynamic_encoder(dynamic_ld)
 
                 # Since we compute the VRP in minibatches, some tours may have
                 # number of stops. We force the vehicles to remain at the depot 
